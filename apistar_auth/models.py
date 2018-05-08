@@ -31,9 +31,8 @@ class User(database.Base):
                             back_populates='user')
 
     def __init__(self, *args, **kwargs):
-        print(args, kwargs)
-        if 'role' in kwargs:
-            kwargs['role'] = UserRole[kwargs['role']]
+        # Convert role name to enum value.
+        kwargs['role'] = UserRole[kwargs['role']]
         super().__init__(*args, **kwargs)
         self.password = hasher().encrypt(self.password)
 
