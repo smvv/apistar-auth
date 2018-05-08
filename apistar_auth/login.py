@@ -1,5 +1,6 @@
 from http.cookies import SimpleCookie
 from datetime import datetime, timedelta
+from urllib.parse import urlparse
 
 from apistar import Route, validators, types, http
 from apistar.exceptions import BadRequest
@@ -9,9 +10,8 @@ from .users import User, UserType
 from .auth import SESSION_COOKIE_NAME, UserSession
 
 
-def get_session_cookie(request, session_id):
-    from urllib.parse import urlparse
-    parsed = urlparse(request.url)
+def get_session_cookie(url: str, session_id: str) -> SimpleCookie:
+    parsed = urlparse(url)
 
     cookie = SimpleCookie()
     cookie[SESSION_COOKIE_NAME] = session_id
@@ -47,7 +47,7 @@ def login(session: Session, request: http.Request,
 
     user_session = UserSession(user=user)
 
-    cookie = get_session_cookie(request, str(user_session.id))
+    cookie = get_session_cookie(request.url, str(user_session.id))
 
     session.add(user_session)
     session.commit()
