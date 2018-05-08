@@ -1,3 +1,14 @@
+# -*- coding: utf-8 -*-
+__version__ = '0.0.1'
+__license__ = 'MIT'
+
+__author__ = 'Sander Mathijs van Veen'
+__email__ = 'sandervv+pypi@gmail.com'
+
+__url__ = 'https://github.com/smvv/apistar-auth'
+__description__ = \
+    'Authentication integration based on SQLAlchemy for API Star.'
+
 from apistar import Include
 
 from .auth import (
