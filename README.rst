@@ -2,7 +2,7 @@ API Star Authentication
 =======================
 |build-status| |coverage| |version|
 
-:Version: 0.0.1
+:Version: 0.1.0
 :Status: Production/Stable
 :Author: Sander Mathijs van Veen
 
