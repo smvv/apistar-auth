@@ -2,40 +2,11 @@ from typing import List
 
 from apistar import Route, validators, types, http, Component
 from apistar.exceptions import BadRequest
-from apistar_sqlalchemy import database
-from sqlalchemy import Column, Integer, String
-from sqlalchemy.orm import Session, relationship
+from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy_utils.types.choice import ChoiceType
 
-from .auth import UserRole, authorized, UserSession
-from .hasher import hasher
-
-
-class User(database.Base):
-    __tablename__ = 'users'
-
-    id = Column(Integer, primary_key=True)
-    username = Column(String, nullable=False, unique=True)
-    password = Column(String, nullable=False)
-    role = Column(ChoiceType(UserRole, impl=Integer()), nullable=False)
-    fullname = Column(String)
-
-    sessions = relationship('UserSession', order_by=UserSession.id,
-                            back_populates='user')
-
-    def __init__(self, *args, **kwargs):
-        if 'role' in kwargs:
-            kwargs['role'] = UserRole[kwargs['role']]
-        super().__init__(*args, **kwargs)
-        self.password = hasher().encrypt(self.password)
-
-    def verify_password(self, password):
-        return hasher().verify(password, self.password)
-
-    def __repr__(self):
-        msg = '<User(username=%s, role=%s, fullname=%s)>'
-        return msg % (self.username, self.role, self.fullname)
+from .auth import authorized
+from .models import User, UserRole
 
 
 class UserType(types.Type):
@@ -60,7 +31,7 @@ class UserType(types.Type):
         super().__init__(*patched, **kwargs)
 
 
-class InputUserType(UserType):
+class UserInputType(UserType):
     password = validators.String(min_length=1)
 
 
@@ -68,7 +39,8 @@ class UserComponent(Component):
     def __init__(self) -> None:
         pass
 
-    def resolve(self, request: http.Request) -> User:
+    def resolve(self, _: http.Request  # pylint: disable=arguments-differ
+                ) -> User:
         return None
 
 
@@ -77,8 +49,8 @@ def list_users(session: Session) -> List[UserType]:
     return list(map(UserType, session.query(User).all()))
 
 
-def create_user(session: Session, user_data: InputUserType,
-                user: User) -> http.JSONResponse:
+def create_user(session: Session, user_data: UserInputType,
+                _: User) -> http.JSONResponse:
     new_user = User(**dict(user_data))
     if new_user.id is not None:
         raise BadRequest({'error': 'user ID cannot be set'})
@@ -89,7 +61,7 @@ def create_user(session: Session, user_data: InputUserType,
 
     try:
         session.commit()
-    except IntegrityError as e:
+    except IntegrityError:
         raise BadRequest({'error': 'username already exists'})
 
     return http.JSONResponse(UserType(new_user), status_code=201)

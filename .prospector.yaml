@@ -9,3 +9,11 @@ ignore-paths:
   - build
   - tests
   - build.py
+
+pylint:
+  options:
+    max-parents: 10
+    disable:
+      - invalid-name
+      - no-self-use
+      - too-many-ancestors

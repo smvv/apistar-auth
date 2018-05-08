@@ -1,36 +1,13 @@
-import enum
-import uuid
-import secrets
 from http.cookies import SimpleCookie
 
 from apistar import http, Route
 from apistar.exceptions import HTTPException
-from apistar_sqlalchemy import database
-from sqlalchemy import Column, Integer, ForeignKey
-from sqlalchemy.orm import Session, relationship
+from sqlalchemy.orm import Session
 
-from .guid import GUID
+from .models import User, UserSession
 
 
 SESSION_COOKIE_NAME = 'session_id'
-
-
-class UserRole(enum.Enum):
-    admin = 1
-    user = 2
-
-
-class UserSession(database.Base):
-    __tablename__ = 'user_sessions'
-
-    id = Column(GUID, primary_key=True)
-    user_id = Column(Integer, ForeignKey('users.id'))
-
-    user = relationship('User', back_populates='sessions')
-
-    def __init__(self, user):
-        self.id = generate_session_id()
-        self.user = user
 
 
 def _mark_authorization(f, role=None):
@@ -50,26 +27,14 @@ def authorized(role=None):
     return outer
 
 
-def generate_session_id():
-    return uuid.UUID(bytes=secrets.token_bytes(16))
-
-
 class Unauthorized(HTTPException):
     default_status_code = 401
     default_detail = 'Unauthorized'
 
 
 class AuthorizationHook:
-
-    # TODO purge expired sessions.
-
-    def on_request(self, route: Route, request: http.Request,
-                   session: Session):
-        handler = route.handler
-        if not hasattr(handler, 'needs_authorization'):
-            return
-
-        cookie_header = request.headers.get('cookie')
+    def get_session_id(self, headers):
+        cookie_header = headers.get('cookie')
         if not cookie_header:
             raise Unauthorized(dict(error='no cookie header found'))
 
@@ -86,7 +51,18 @@ class AuthorizationHook:
             error = 'invalid value for cookie "{}"'.format(SESSION_COOKIE_NAME)
             raise Unauthorized(dict(error=error))
 
-        from .users import User
+        return session_id
+
+    # TODO purge expired sessions.
+
+    def on_request(self, route: Route, request: http.Request,
+                   session: Session):
+        handler = route.handler
+        if not hasattr(handler, 'needs_authorization'):
+            return
+
+        session_id = self.get_session_id(request.headers)
+
         user = session.query(User) \
             .join(UserSession) \
             .filter(UserSession.id == session_id).first()

@@ -1,6 +1,6 @@
+import uuid
 from sqlalchemy.types import TypeDecorator, CHAR
 from sqlalchemy.dialects.postgresql import UUID
-import uuid
 
 
 class GUID(TypeDecorator):
@@ -29,6 +29,9 @@ class GUID(TypeDecorator):
         # hexstring
         return "%.32x" % value.int
 
+    def process_literal_param(self, value, dialect):
+        raise NotImplementedError()
+
     def process_result_value(self, value, dialect):
         if value is None:
             return value
@@ -36,3 +39,6 @@ class GUID(TypeDecorator):
         if not isinstance(value, uuid.UUID):
             value = uuid.UUID(value)
         return value
+
+    def python_type(self):
+        raise NotImplementedError()

@@ -36,12 +36,12 @@ class LoginType(types.Type):
 
 
 def login(session: Session, request: http.Request,
-          login: LoginType) -> UserType:
-    user = session.query(User).filter(User.username == login.username).first()
+          data: LoginType) -> UserType:
+    user = session.query(User).filter(User.username == data.username).first()
     if not user:
         raise BadRequest(dict(error='Invalid username/password'))
 
-    verified = user.verify_password(login.password)
+    verified = user.verify_password(data.password)
     if not verified:
         raise BadRequest(dict(error='Invalid username/password'))
 

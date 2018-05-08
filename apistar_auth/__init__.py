@@ -1,13 +1,4 @@
 # -*- coding: utf-8 -*-
-__version__ = '0.0.1'
-__license__ = 'MIT'
-
-__author__ = 'Sander Mathijs van Veen'
-__email__ = 'sandervv+pypi@gmail.com'
-
-__url__ = 'https://github.com/smvv/apistar-auth'
-__description__ = \
-    'Authentication integration based on SQLAlchemy for API Star.'
 
 from apistar import Include
 
@@ -16,6 +7,10 @@ from .auth import (
     authorized,
     Unauthorized,
     SESSION_COOKIE_NAME,
+)
+
+from .models import (
+    User,
     UserRole,
     UserSession,
 )
@@ -26,7 +21,8 @@ from .login import (
 
 from .users import (
     routes as users_routes,
-    User,
+    UserInputType,
+    UserType,
     UserComponent,
 )
 
@@ -34,6 +30,16 @@ from .hasher import (
     disable_bcrypt_hasher,
     enable_bcrypt_hasher,
 )
+
+__version__ = '0.0.1'
+__license__ = 'MIT'
+
+__author__ = 'Sander Mathijs van Veen'
+__email__ = 'sandervv+pypi@gmail.com'
+
+__url__ = 'https://github.com/smvv/apistar-auth'
+__description__ = \
+    'Authentication integration based on SQLAlchemy for API Star.'
 
 __all__ = [
     'AuthorizationHook', 'authorized', 'Unauthorized',
