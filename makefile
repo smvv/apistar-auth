@@ -11,3 +11,8 @@ coverage:
 
 watch:
 	pipenv run ptw -q --clear -- -q --tb=short
+
+upload:
+	rm -f dist/*
+	python setup.py sdist
+	twine upload dist/*
