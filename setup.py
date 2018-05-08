@@ -70,7 +70,7 @@ setup(
     package_data=get_package_data(package_name),
     install_requires=[
         'apistar',
-        'apistar-sqlalchemy'
+        'apistar-sqlalchemy',
         'SQLAlchemy',
         'SQLAlchemy-Utils',
         'passlib',
