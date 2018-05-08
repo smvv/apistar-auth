@@ -9,11 +9,16 @@ sqlalchemy-utils = "*"
 passlib = "*"
 bcrypt = "*"
 apistar-sqlalchemy = "*"
-apistar = "*"
+apistar = ">=0.5"
 
 [dev-packages]
+clinner = "*"
+coverage = "*"
+prospector = "*"
 pytest = "*"
+pytest-cov = "*"
 pytest-watch = "*"
+tox = "*"
 
 [requires]
 python_version = "3.6"

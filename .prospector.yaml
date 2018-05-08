@@ -1,0 +1,11 @@
+output-format: grouped
+
+strictness: high
+autodetect: true
+member-warnings: false
+
+ignore-paths:
+  - docs
+  - build
+  - tests
+  - build.py
