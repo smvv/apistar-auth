@@ -6,7 +6,6 @@ from .auth import (
     AuthorizationHook,
     authorized,
     Unauthorized,
-    SESSION_COOKIE_NAME,
 )
 
 from .models import (
@@ -24,6 +23,7 @@ from .users import (
     UserInputType,
     UserType,
     UserComponent,
+    SESSION_COOKIE_NAME,
 )
 
 from .hasher import (

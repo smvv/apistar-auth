@@ -1,13 +1,7 @@
-from http.cookies import SimpleCookie
-
-from apistar import http, Route
+from apistar import Route
 from apistar.exceptions import HTTPException
-from sqlalchemy.orm import Session
 
-from .models import User, UserSession
-
-
-SESSION_COOKIE_NAME = 'session_id'
+from .models import User
 
 
 def _mark_authorization(f, role=None):
@@ -33,42 +27,16 @@ class Unauthorized(HTTPException):
 
 
 class AuthorizationHook:
-    def get_session_id(self, headers):
-        cookie_header = headers.get('cookie')
-        if not cookie_header:
-            raise Unauthorized(dict(error='no cookie header found'))
-
-        cookie = SimpleCookie()
-        cookie.load(cookie_header)
-
-        session_id_cookie = cookie.get(SESSION_COOKIE_NAME)
-        if not session_id_cookie:
-            error = 'no cookie named "{}" found'.format(SESSION_COOKIE_NAME)
-            raise Unauthorized(dict(error=error))
-
-        session_id = session_id_cookie.value
-        if not session_id:
-            error = 'invalid value for cookie "{}"'.format(SESSION_COOKIE_NAME)
-            raise Unauthorized(dict(error=error))
-
-        return session_id
 
     # TODO purge expired sessions.
 
-    def on_request(self, route: Route, request: http.Request,
-                   session: Session):
+    def on_request(self, route: Route, user: User):
         handler = route.handler
         if not hasattr(handler, 'needs_authorization'):
             return
 
-        session_id = self.get_session_id(request.headers)
-
-        user = session.query(User) \
-            .join(UserSession) \
-            .filter(UserSession.id == session_id).first()
-
         if not user:
-            raise Unauthorized()
+            raise Unauthorized(dict(error='no authenticated user found'))
 
         # If there is no authorized role specified, we're done.
         if not hasattr(handler, 'authorized_role'):

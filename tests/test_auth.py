@@ -32,18 +32,18 @@ class TestCaseAuth(TestCaseUnauthenticatedBase):
         assert 'invalid user role' in resp.json()['error']
 
     def test_authorize_invalid_cookie(self, user_data, client):
+        error_no_user_found = 'no authenticated user found'
+
         resp = client.get('/users/', json=user_data)
         assert resp.status_code == 401
-        assert resp.json()['error'] == 'no cookie header found'
+        assert resp.json()['error'] == error_no_user_found
 
         client.cookies['unknown_cookie_name'] = 'session_value'
         resp = client.get('/users/', json=user_data)
         assert resp.status_code == 401
-        error = 'no cookie named "{}" found'.format(SESSION_COOKIE_NAME)
-        assert resp.json()['error'] == error
+        assert resp.json()['error'] == error_no_user_found
 
         client.cookies[SESSION_COOKIE_NAME] = ''
         resp = client.get('/users/', json=user_data)
         assert resp.status_code == 401
-        error = 'invalid value for cookie "{}"'.format(SESSION_COOKIE_NAME)
-        assert resp.json()['error'] == error
+        assert resp.json()['error'] == error_no_user_found

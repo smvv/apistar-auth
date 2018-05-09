@@ -6,8 +6,7 @@ from apistar import Route, validators, types, http
 from apistar.exceptions import BadRequest
 from sqlalchemy.orm import Session
 
-from .users import User, UserType
-from .auth import SESSION_COOKIE_NAME, UserSession
+from .users import User, UserType, UserSession, SESSION_COOKIE_NAME
 
 
 def get_session_cookie(url: str, session_id: str) -> SimpleCookie:

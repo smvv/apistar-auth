@@ -1,5 +1,5 @@
 from .testutil import TestCaseUnauthenticatedBase
-from apistar_auth.auth import SESSION_COOKIE_NAME
+from apistar_auth.users import SESSION_COOKIE_NAME
 from apistar_auth.login import get_session_cookie
 
 

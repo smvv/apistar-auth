@@ -1,3 +1,4 @@
+from http.cookies import SimpleCookie
 from typing import List
 
 from apistar import Route, validators, types, http, Component
@@ -6,7 +7,10 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
 from .auth import authorized
-from .models import User, UserRole
+from .models import User, UserRole, UserSession
+
+
+SESSION_COOKIE_NAME = 'session_id'
 
 
 class UserType(types.Type):
@@ -39,9 +43,32 @@ class UserComponent(Component):
     def __init__(self) -> None:
         pass
 
-    def resolve(self, _: http.Request  # pylint: disable=arguments-differ
+    def get_session_id(self, headers):
+        cookie_header = headers.get('cookie')
+        if not cookie_header:
+            return None
+
+        cookie = SimpleCookie()
+        cookie.load(cookie_header)
+
+        session_id_cookie = cookie.get(SESSION_COOKIE_NAME)
+        if not session_id_cookie:
+            return None
+
+        return session_id_cookie.value
+
+    def resolve(self, request: http.Request, session: Session
+                # pylint: disable=arguments-differ
                 ) -> User:
-        return None
+        session_id = self.get_session_id(request.headers)
+        if not session_id:
+            return None
+
+        user = session.query(User) \
+            .join(UserSession) \
+            .filter(UserSession.id == session_id).first()
+
+        return user
 
 
 @authorized(UserRole.admin)
