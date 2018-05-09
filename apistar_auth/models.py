@@ -16,6 +16,20 @@ class UserRole(enum.Enum):
     user = 2
 
 
+def can_user_create_user(user, new_user):
+    if not user:
+        # Unauthenticated users can only create a new user account.
+        return new_user.role == UserRole.user
+
+    # Admins can create any account.
+    if user.role == UserRole.admin:
+        return True
+
+    # Else, users can only create a user account.
+    assert user.role == UserRole.user
+    return user.role == new_user.role
+
+
 class User(database.Base):
     __tablename__ = 'users'
 

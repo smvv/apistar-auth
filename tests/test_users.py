@@ -1,5 +1,4 @@
 from .testutil import TestCaseUnauthenticatedBase
-from apistar_auth import User
 
 
 class TestCaseUsers(TestCaseUnauthenticatedBase):
@@ -73,19 +72,51 @@ class TestCaseUsers(TestCaseUnauthenticatedBase):
         assert body[1]['username'] == 'a'
         assert body[1]['role'] == 'user'
 
-    def test_create_admin_as_user(self, client):
-        resp = client.post('/users/', json={
-            'username': 'a',
-            'password': 'a',
-            'role': 'user',
-            'fullname': 'a',
-        })
-        assert resp.status_code == 201
+    def test_invalid_user_roles(self, client, user_data):
+        user_data['role'] = 'admin'
+        resp = client.post('/users/', json=user_data)
+        assert resp.status_code == 400
+        error = 'user cannot create user with role "admin"'
+        assert resp.json()['error'] == error
 
-        resp = client.post('/users/', json={
-            'username': 'b',
-            'password': 'b',
-            'role': 'admin',
-            'fullname': 'b',
-        })
+        user_data['role'] = 'unknown_role'
+        resp = client.post('/users/', json=user_data)
+        assert resp.status_code == 400
+        assert resp.json()['role'] == 'Must be a valid choice.'
+
+    def test_user_can_create_user(self, client, user_data):
+        resp = client.post('/users/', json=user_data)
         assert resp.status_code == 201
+        assert resp.json()['id'] == 1
+        assert resp.json()['role'] == 'user'
+
+        resp = client.post('/login/', json=user_data)
+        assert resp.status_code == 200
+
+        user_data['username'] = 'new_user'
+        resp = client.post('/users/', json=user_data)
+        assert resp.status_code == 201
+        assert resp.json()['id'] == 2
+        assert resp.json()['role'] == 'user'
+
+        user_data['user_data'] = 'new_admin'
+        user_data['role'] = 'admin'
+        resp = client.post('/users/', json=user_data)
+        assert resp.status_code == 400
+        error = 'user cannot create user with role "admin"'
+        assert resp.json()['error'] == error
+
+    def test_admin_can_create_user(self, admin, user_data):
+        resp = admin.post('/users/', json=user_data)
+        assert resp.status_code == 201
+        assert resp.json()['id'] == 2
+        assert resp.json()['username'] == user_data['username']
+        assert resp.json()['role'] == 'user'
+
+    def test_admin_can_create_admin(self, admin, user_data):
+        user_data['role'] = 'admin'
+        resp = admin.post('/users/', json=user_data)
+        assert resp.status_code == 201
+        assert resp.json()['id'] == 2
+        assert resp.json()['username'] == user_data['username']
+        assert resp.json()['role'] == 'admin'

@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
 from .auth import authorized
-from .models import User, UserRole, UserSession
+from .models import User, UserRole, UserSession, can_user_create_user
 
 
 SESSION_COOKIE_NAME = 'session_id'
@@ -77,14 +77,17 @@ def list_users(session: Session) -> List[UserType]:
 
 
 def create_user(session: Session, user_data: UserInputType,
-                _: User) -> http.JSONResponse:
+                user: User) -> http.JSONResponse:
     new_user = User(**dict(user_data))
+
     if new_user.id is not None:
         raise BadRequest({'error': 'user ID cannot be set'})
-    session.add(new_user)
 
-    # TODO: check if current user has admin rights when trying to create an
-    # admin account.
+    if not can_user_create_user(user, new_user):
+        msg = 'user cannot create user with role "{}"'
+        raise BadRequest({'error': msg.format(new_user.role.name)})
+
+    session.add(new_user)
 
     try:
         session.commit()
