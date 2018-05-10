@@ -57,8 +57,8 @@ class User(database.Base):
         return hasher().verify(password, self.password)
 
     def __repr__(self):
-        msg = '<User(username=%s, role=%s, fullname=%s)>'
-        return msg % (self.username, self.role, self.fullname)
+        msg = '<User(username=%r, role=%s, fullname=%r)>'
+        return msg % (self.username, self.role.name, self.fullname)
 
 
 class UserSession(database.Base):
