@@ -2,8 +2,9 @@ import enum
 import uuid
 import secrets
 
-from sqlalchemy import Column, String, Integer, ForeignKey
+from sqlalchemy import Column, String, Integer, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql.functions import now
 from sqlalchemy_utils.types.choice import ChoiceType
 from apistar_sqlalchemy import database
 
@@ -39,7 +40,9 @@ class User(database.Base):
     role = Column(ChoiceType(UserRole, impl=Integer()), nullable=False)
     fullname = Column(String)
 
-    # TODO add Column 'created'
+    created = Column(DateTime(timezone=True), server_default=now())
+    updated = Column(DateTime(timezone=True), server_default=now(),
+                     onupdate=now())
 
     sessions = relationship('UserSession',  # order_by='user_sessions.created',
                             back_populates='user')
@@ -64,7 +67,9 @@ class UserSession(database.Base):
     id = Column(GUID, primary_key=True)
     user_id = Column(Integer, ForeignKey('users.id'))
 
-    # TODO add Column 'created'
+    created = Column(DateTime(timezone=True), server_default=now())
+    updated = Column(DateTime(timezone=True), server_default=now(),
+                     onupdate=now())
 
     user = relationship('User', back_populates='sessions')
 

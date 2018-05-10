@@ -11,7 +11,7 @@ from .models import User, UserRole, UserSession, can_user_create_user
 from .cookies import SESSION_COOKIE_NAME
 
 
-class UserType(types.Type):
+class UserBaseType(types.Type):
     id = validators.Integer(allow_null=True)
     username = validators.String(min_length=1)
     role = validators.String(
@@ -33,7 +33,12 @@ class UserType(types.Type):
         super().__init__(*patched, **kwargs)
 
 
-class UserInputType(UserType):
+class UserType(UserBaseType):
+    created = validators.DateTime()
+    updated = validators.DateTime()
+
+
+class UserInputType(UserBaseType):
     password = validators.String(min_length=1)
 
 

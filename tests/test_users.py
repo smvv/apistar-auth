@@ -1,4 +1,5 @@
 from .testutil import TestCaseUnauthenticatedBase
+from datetime import datetime
 
 
 class TestCaseUsers(TestCaseUnauthenticatedBase):
@@ -22,6 +23,12 @@ class TestCaseUsers(TestCaseUnauthenticatedBase):
             if key == 'password':
                 continue
             assert body[1][key] == value
+
+        date_format = '%Y-%m-%dT%H:%M:%S'
+        created = datetime.strptime(body[1]['created'], date_format)
+        updated = datetime.strptime(body[1]['updated'], date_format)
+        assert created == updated
+        assert (created - datetime.now()).total_seconds() <= 1.5
 
     def test_create_failures(self, client, admin):
         resp = client.post('/users/', json={})
