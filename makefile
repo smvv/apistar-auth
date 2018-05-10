@@ -10,7 +10,7 @@ coverage:
 	pipenv run pytest -q --cov-report=term --cov-report=html --cov=apistar_auth
 
 watch:
-	pipenv run ptw -q --clear -- -q --tb=short
+	pipenv run ptw -q --clear -- -q --tb=short --maxfail 1
 
 upload:
 	rm -f dist/*
