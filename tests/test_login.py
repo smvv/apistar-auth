@@ -1,6 +1,4 @@
 from .testutil import TestCaseUnauthenticatedBase
-from apistar_auth.users import SESSION_COOKIE_NAME
-from apistar_auth.login import get_session_cookie
 
 
 class TestCaseLogin(TestCaseUnauthenticatedBase):
@@ -31,9 +29,3 @@ class TestCaseLogin(TestCaseUnauthenticatedBase):
         resp = client.post('/login/', json=user_data)
         assert resp.status_code == 400
         assert resp.json()['error'] == 'Invalid username/password'
-
-    def test_session_cookie_security(self):
-        url = 'https://testserver.local'
-        cookie = get_session_cookie(url, 'session value')
-        assert cookie[SESSION_COOKIE_NAME]['httponly']
-        assert cookie[SESSION_COOKIE_NAME]['secure']

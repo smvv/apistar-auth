@@ -8,9 +8,7 @@ from sqlalchemy.exc import IntegrityError
 
 from .auth import authorized
 from .models import User, UserRole, UserSession, can_user_create_user
-
-
-SESSION_COOKIE_NAME = 'session_id'
+from .cookies import SESSION_COOKIE_NAME
 
 
 class UserType(types.Type):

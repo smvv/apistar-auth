@@ -8,6 +8,8 @@ from .auth import (
     Unauthorized,
 )
 
+from .cookies import SESSION_COOKIE_NAME
+
 from .models import (
     User,
     UserRole,
@@ -23,7 +25,6 @@ from .users import (
     UserInputType,
     UserType,
     UserComponent,
-    SESSION_COOKIE_NAME,
 )
 
 from .hasher import (
