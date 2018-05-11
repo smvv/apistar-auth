@@ -42,6 +42,19 @@ class UserInputType(UserBaseType):
     password = validators.String(min_length=1)
 
 
+class UUID(validators.String):
+    def validate(self, value, *args, **kwargs):
+        return super().validate(str(value), *args, **kwargs)
+
+
+class UserSessionType(types.Type):
+    id = UUID()
+    user_id = validators.Integer()
+
+    created = validators.DateTime()
+    updated = validators.DateTime()
+
+
 class UserComponent(Component):
     def __init__(self) -> None:
         pass
@@ -100,7 +113,16 @@ def create_user(session: Session, user_data: UserInputType,
     return http.JSONResponse(UserType(new_user), status_code=201)
 
 
+@authorized
+def list_user_session(session: Session, user: User) -> List[UserSessionType]:
+    sessions = session.query(UserSession) \
+        .filter(UserSession.user_id == user.id) \
+        .all()
+    return list(map(UserSessionType, sessions))
+
+
 routes = [
     Route('/', 'GET', list_users),
     Route('/', 'POST', create_user),
+    Route('/sessions/', 'GET', list_user_session),
 ]

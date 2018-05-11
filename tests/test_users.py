@@ -127,3 +127,35 @@ class TestCaseUsers(TestCaseUnauthenticatedBase):
         assert resp.json()['id'] == 2
         assert resp.json()['username'] == user_data['username']
         assert resp.json()['role'] == 'admin'
+
+    def test_list_user_sessions(self, client, user_data):
+        resp = client.get('/users/sessions/')
+        assert resp.status_code == 401
+        assert resp.json()['error'] == 'no authenticated user found'
+
+        resp = client.post('/users/', json=user_data)
+        assert resp.status_code == 201
+
+        resp = client.post('/login/', json=user_data)
+        assert resp.status_code == 200
+
+        resp = client.get('/users/sessions/')
+        assert resp.status_code == 200
+        body = resp.json()
+        assert len(body) == 1
+
+        assert body[0]['id']
+        assert body[0]['user_id'] == 1
+
+        date_format = '%Y-%m-%dT%H:%M:%S'
+        created = datetime.strptime(body[0]['created'], date_format)
+        updated = datetime.strptime(body[0]['updated'], date_format)
+        assert created == updated
+        assert (created - datetime.now()).total_seconds() <= 1.5
+
+        resp = client.post('/login/', json=user_data)
+        assert resp.status_code == 200
+
+        resp = client.get('/users/sessions/')
+        assert resp.status_code == 200
+        assert len(resp.json()) == 2
