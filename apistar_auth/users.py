@@ -43,8 +43,8 @@ class UserInputType(UserBaseType):
 
 
 class UUID(validators.String):
-    def validate(self, value, *args, **kwargs):
-        return super().validate(str(value), *args, **kwargs)
+    def validate(self, value, definitions=None, allow_coerce=False):
+        return super().validate(str(value), definitions, allow_coerce)
 
 
 class UserSessionType(types.Type):
