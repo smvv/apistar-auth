@@ -1,4 +1,5 @@
 from datetime import datetime
+import pytest
 
 from .testutil import TestCaseUnauthenticatedBase
 
@@ -35,7 +36,12 @@ class TestCaseLogin(TestCaseUnauthenticatedBase):
         assert resp.status_code == 400
         assert resp.json()['error'] == 'Invalid username/password'
 
-    def test_purge_expired_sessions(self, client, user_data, session):
+    @pytest.fixture(scope='function', params=[True, False])
+    def use_session_endpoint(self, request):
+        return request.param
+
+    def test_purge_expired_sessions(self, client, user_data, session,
+                                    use_session_endpoint):
         resp = client.post('/users/', json=user_data)
         assert resp.status_code == 201
         user_id = resp.json()['id']
@@ -43,9 +49,12 @@ class TestCaseLogin(TestCaseUnauthenticatedBase):
         resp = client.post('/login/', json=user_data)
         assert resp.status_code == 200
 
+        resp = client.post('/login/', json=user_data)
+        assert resp.status_code == 200
+
         sessions = session.query(UserSession) \
             .filter(UserSession.user_id == user_id).all()
-        assert len(sessions) == 1
+        assert len(sessions) == 2
         session_id = sessions[0].id
 
         # Set the created and updated field to an expired date.
@@ -53,10 +62,19 @@ class TestCaseLogin(TestCaseUnauthenticatedBase):
         sessions[0].updated = datetime.utcnow() - session_expires_after
         session.commit()
 
-        resp = client.post('/login/', json=user_data)
-        assert resp.status_code == 200
+        if use_session_endpoint:
+            resp = client.delete('/users/sessions/expired/')
+            assert resp.status_code == 200
+        else:
+            resp = client.post('/login/', json=user_data)
+            assert resp.status_code == 200
 
         sessions = session.query(UserSession) \
             .filter(UserSession.user_id == user_id).all()
-        assert len(sessions) == 1
+
+        if use_session_endpoint:
+            assert len(sessions) == 1
+        else:
+            assert len(sessions) == 2
+
         assert sessions[0].id != session_id
