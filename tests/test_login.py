@@ -1,4 +1,9 @@
+from datetime import datetime
+
 from .testutil import TestCaseUnauthenticatedBase
+
+from apistar_auth import UserSession
+from apistar_auth.users import session_expires_after
 
 
 class TestCaseLogin(TestCaseUnauthenticatedBase):
@@ -29,3 +34,29 @@ class TestCaseLogin(TestCaseUnauthenticatedBase):
         resp = client.post('/login/', json=user_data)
         assert resp.status_code == 400
         assert resp.json()['error'] == 'Invalid username/password'
+
+    def test_purge_expired_sessions(self, client, user_data, session):
+        resp = client.post('/users/', json=user_data)
+        assert resp.status_code == 201
+        user_id = resp.json()['id']
+
+        resp = client.post('/login/', json=user_data)
+        assert resp.status_code == 200
+
+        sessions = session.query(UserSession) \
+            .filter(UserSession.user_id == user_id).all()
+        assert len(sessions) == 1
+        session_id = sessions[0].id
+
+        # Set the created and updated field to an expired date.
+        sessions[0].created = datetime.utcnow() - session_expires_after
+        sessions[0].updated = datetime.utcnow() - session_expires_after
+        session.commit()
+
+        resp = client.post('/login/', json=user_data)
+        assert resp.status_code == 200
+
+        sessions = session.query(UserSession) \
+            .filter(UserSession.user_id == user_id).all()
+        assert len(sessions) == 1
+        assert sessions[0].id != session_id

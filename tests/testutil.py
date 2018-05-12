@@ -40,6 +40,11 @@ class TestCaseBase(object):
         # Disable bcrypt rounds to speedup testing.
         disable_bcrypt_hasher()
 
+    @pytest.fixture(scope='function')
+    def session(self):
+        database.Session.configure(bind=engine)
+        return database.Session()
+
     @pytest.fixture(scope='function', params=[app])
     def client(self, request):
         database.Base.metadata.create_all(engine)
@@ -51,11 +56,8 @@ class TestCaseBase(object):
         database.Base.metadata.drop_all(engine)
 
     @pytest.fixture(scope='function', params=[app])
-    def admin(self, request):
+    def admin(self, session, request):
         database.Base.metadata.create_all(engine)
-
-        database.Session.configure(bind=engine)
-        session = database.Session()
 
         admin = User(**self.admin_data())
         session.add(admin)

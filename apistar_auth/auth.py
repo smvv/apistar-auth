@@ -27,9 +27,6 @@ class Unauthorized(HTTPException):
 
 
 class AuthorizationHook:
-
-    # TODO purge expired sessions.
-
     def on_request(self, route: Route, user: User):
         handler = route.handler
         if not hasattr(handler, 'needs_authorization'):

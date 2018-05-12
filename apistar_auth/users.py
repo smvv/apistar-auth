@@ -1,9 +1,11 @@
 from http.cookies import SimpleCookie
 from typing import List
+from datetime import datetime, timedelta
 
 from apistar import Route, validators, types, http, Component
 from apistar.exceptions import BadRequest
 from sqlalchemy.orm import Session
+from sqlalchemy.sql.functions import now
 from sqlalchemy.exc import IntegrityError
 
 from .auth import authorized
@@ -55,9 +57,12 @@ class UserSessionType(types.Type):
     updated = validators.DateTime()
 
 
+session_expires_after = timedelta(days=3 * 30)
+
+
 class UserComponent(Component):
     def __init__(self) -> None:
-        pass
+        self.session_update_delay = timedelta(days=1)
 
     def get_session_id(self, headers):
         cookie_header = headers.get('cookie')
@@ -80,9 +85,23 @@ class UserComponent(Component):
         if not session_id:
             return None
 
-        user = session.query(User) \
+        user, session_updated = session.query(User, UserSession.updated) \
             .join(UserSession) \
             .filter(UserSession.id == session_id).first()
+
+        # Reject expired sessions.
+        if session_updated <= (datetime.utcnow() - session_expires_after):
+            prune_expired_sessions(session)
+            return None
+
+        # Update session field 'updated' when the difference between now and
+        # the last update is more than 'session_update_delay'. This avoids
+        # updating the field too often.
+        if (datetime.utcnow() - session_updated) >= self.session_update_delay:
+            session.query(UserSession) \
+                .filter(UserSession.id == session_id) \
+                .update({'updated': now()}, synchronize_session=False)
+            session.commit()
 
         return user
 
@@ -121,8 +140,17 @@ def list_user_session(session: Session, user: User) -> List[UserSessionType]:
     return list(map(UserSessionType, sessions))
 
 
+@authorized
+def prune_expired_sessions(session: Session):
+    expiration_date = datetime.utcnow() - session_expires_after
+    session.query(UserSession) \
+        .filter(UserSession.updated <= expiration_date) \
+        .delete()
+
+
 routes = [
     Route('/', 'GET', list_users),
     Route('/', 'POST', create_user),
     Route('/sessions/', 'GET', list_user_session),
+    Route('/sessions/expired', 'DELETE', prune_expired_sessions),
 ]

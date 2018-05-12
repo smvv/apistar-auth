@@ -2,7 +2,7 @@ from apistar import Route, validators, types, http
 from apistar.exceptions import BadRequest
 from sqlalchemy.orm import Session
 
-from .users import User, UserType, UserSession
+from .users import User, UserType, UserSession, prune_expired_sessions
 from .cookies import get_session_cookie
 
 
@@ -22,13 +22,13 @@ def login(session: Session, request: http.Request,
         raise BadRequest(dict(error='Invalid username/password'))
 
     user_session = UserSession(user=user)
+    session.add(user_session)
 
     cookie = get_session_cookie(request.url, str(user_session.id))
-
-    session.add(user_session)
-    session.commit()
-
     headers = {'Set-Cookie': cookie.output(header='')}
+
+    prune_expired_sessions(session)
+
     return http.JSONResponse(UserType(user), headers=headers)
 
 

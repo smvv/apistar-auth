@@ -42,7 +42,7 @@ class User(database.Base):
 
     created = Column(DateTime(timezone=True), server_default=now())
     updated = Column(DateTime(timezone=True), server_default=now(),
-                     onupdate=now())
+                     onupdate=now(), index=True)
 
     sessions = relationship('UserSession',  # order_by='user_sessions.created',
                             back_populates='user')
@@ -76,6 +76,10 @@ class UserSession(database.Base):
     def __init__(self, user):
         self.id = self.generate_session_id()
         self.user = user
+
+    def __repr__(self):
+        msg = '<UserSession(id=%r, user_id=%r, created=%s, updated=%s)>'
+        return msg % (self.id, self.user_id, self.created, self.updated)
 
     def generate_session_id(self):
         return uuid.UUID(bytes=secrets.token_bytes(16))
