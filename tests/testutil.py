@@ -14,6 +14,8 @@ from apistar_auth import (
     disable_bcrypt_hasher,
 )
 
+from . import db_logger  # noqa
+
 components = [
     SQLAlchemySessionComponent(url='sqlite:///:memory:'),
     UserComponent(),
