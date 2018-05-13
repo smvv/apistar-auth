@@ -92,6 +92,7 @@ class UserComponent(Component):
         # Reject expired sessions.
         if session_updated <= (datetime.utcnow() - session_expires_after):
             prune_expired_sessions(session)
+            session.commit()
             return None
 
         # Update session field 'updated' when the difference between now and

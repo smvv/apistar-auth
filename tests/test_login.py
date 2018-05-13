@@ -78,3 +78,27 @@ class TestCaseLogin(TestCaseUnauthenticatedBase):
             assert len(sessions) == 2
 
         assert sessions[0].id != session_id
+
+    def test_reject_expired_session(self, client, user_data, session):
+        resp = client.post('/users/', json=user_data)
+        assert resp.status_code == 201
+        user_id = resp.json()['id']
+
+        resp = client.post('/login/', json=user_data)
+        assert resp.status_code == 200
+
+        sessions = session.query(UserSession) \
+            .filter(UserSession.user_id == user_id).all()
+        assert len(sessions) == 1
+
+        # Set the created and updated field to an expired date.
+        sessions[0].created = datetime.utcnow() - session_expires_after
+        sessions[0].updated = datetime.utcnow() - session_expires_after
+        session.commit()
+
+        resp = client.get('/users/sessions/')
+        assert resp.status_code == 401
+
+        sessions = session.query(UserSession) \
+            .filter(UserSession.user_id == user_id).all()
+        assert len(sessions) == 0
