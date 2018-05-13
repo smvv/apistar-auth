@@ -58,11 +58,12 @@ class UserSessionType(types.Type):
 
 
 session_expires_after = timedelta(days=3 * 30)
+session_update_delay = timedelta(days=1)
 
 
 class UserComponent(Component):
     def __init__(self) -> None:
-        self.session_update_delay = timedelta(days=1)
+        pass
 
     def get_session_id(self, headers):
         cookie_header = headers.get('cookie')
@@ -98,7 +99,7 @@ class UserComponent(Component):
         # Update session field 'updated' when the difference between now and
         # the last update is more than 'session_update_delay'. This avoids
         # updating the field too often.
-        if (datetime.utcnow() - session_updated) >= self.session_update_delay:
+        if (datetime.utcnow() - session_updated) >= session_update_delay:
             session.query(UserSession) \
                 .filter(UserSession.id == session_id) \
                 .update({'updated': now()}, synchronize_session=False)

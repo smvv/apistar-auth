@@ -4,7 +4,7 @@ import pytest
 from .testutil import TestCaseUnauthenticatedBase
 
 from apistar_auth import UserSession
-from apistar_auth.users import session_expires_after
+from apistar_auth.users import session_expires_after, session_update_delay
 
 
 class TestCaseLogin(TestCaseUnauthenticatedBase):
@@ -102,3 +102,30 @@ class TestCaseLogin(TestCaseUnauthenticatedBase):
         sessions = session.query(UserSession) \
             .filter(UserSession.user_id == user_id).all()
         assert len(sessions) == 0
+
+    def test_throttle_session_update(self, client, user_data, session):
+        resp = client.post('/users/', json=user_data)
+        assert resp.status_code == 201
+        user_id = resp.json()['id']
+
+        resp = client.post('/login/', json=user_data)
+        assert resp.status_code == 200
+
+        sessions = session.query(UserSession) \
+            .filter(UserSession.user_id == user_id).all()
+        assert len(sessions) == 1
+
+        # Subtract the update delay from the created and updated fields.
+        created = datetime.utcnow() - session_update_delay
+        sessions[0].created = created
+        sessions[0].updated = created
+        session.commit()
+
+        resp = client.get('/users/sessions/')
+        assert resp.status_code == 200
+
+        sessions = session.query(UserSession) \
+            .filter(UserSession.user_id == user_id).all()
+        assert len(sessions) == 1
+        assert sessions[0].created == created
+        assert (sessions[0].updated - datetime.utcnow()).total_seconds() <= 1.5
