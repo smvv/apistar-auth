@@ -42,7 +42,7 @@ class User(database.Base):
 
     created = Column(DateTime(timezone=True), server_default=now())
     updated = Column(DateTime(timezone=True), server_default=now(),
-                     onupdate=now(), index=True)
+                     onupdate=now())
 
     sessions = relationship('UserSession',  # order_by='user_sessions.created',
                             back_populates='user')
@@ -69,7 +69,7 @@ class UserSession(database.Base):
 
     created = Column(DateTime(timezone=True), server_default=now())
     updated = Column(DateTime(timezone=True), server_default=now(),
-                     onupdate=now())
+                     onupdate=now(), index=True)
 
     user = relationship('User', back_populates='sessions')
 
