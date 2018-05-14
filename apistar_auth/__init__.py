@@ -32,7 +32,7 @@ from .hasher import (
     enable_bcrypt_hasher,
 )
 
-__version__ = '0.2.0'
+__version__ = '0.2.1'
 __license__ = 'MIT'
 
 __author__ = 'Sander Mathijs van Veen'
