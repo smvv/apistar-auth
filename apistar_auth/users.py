@@ -147,7 +147,7 @@ def prune_expired_sessions(session: Session):
     expiration_date = datetime.utcnow() - session_expires_after
     session.query(UserSession) \
         .filter(UserSession.updated <= expiration_date) \
-        .delete()
+        .delete(synchronize_session=False)
 
 
 routes = [
