@@ -25,3 +25,8 @@ class TestCaseUsers(TestCaseUnauthenticatedBase):
         body = resp.json()
         assert len(body) == 1
         assert body[0]['id'] == token
+
+    def test_invalid_token(self, client):
+        token = 'abc' * 20
+        resp = client.get('/tokens/', params=dict(token=token))
+        assert resp.status_code == 401

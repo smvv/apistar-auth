@@ -1,6 +1,7 @@
 from http.cookies import SimpleCookie
 from typing import List
 from datetime import datetime, timedelta
+import uuid
 
 from apistar import Route, validators, types, http, Component
 from apistar.exceptions import BadRequest
@@ -80,6 +81,11 @@ class UserComponent(Component):
                 # pylint: disable=arguments-differ
                 ) -> User:
         if token:
+            try:
+                token = uuid.UUID(token)
+            except ValueError:
+                return None
+
             user = session.query(User) \
                 .join(Token) \
                 .filter(Token.id == token).first()
