@@ -9,8 +9,9 @@ from sqlalchemy.sql.functions import now
 from sqlalchemy.exc import IntegrityError
 
 from .auth import authorized
-from .models import User, UserRole, UserSession, can_user_create_user
 from .cookies import SESSION_COOKIE_NAME
+from .models import Token, User, UserRole, UserSession, can_user_create_user
+from .validators import UUID
 
 
 class UserBaseType(types.Type):
@@ -44,11 +45,6 @@ class UserInputType(UserBaseType):
     password = validators.String(min_length=1)
 
 
-class UUID(validators.String):
-    def validate(self, value, definitions=None, allow_coerce=False):
-        return super().validate(str(value), definitions, allow_coerce)
-
-
 class UserSessionType(types.Type):
     id = UUID()
     user_id = validators.Integer()
@@ -79,13 +75,23 @@ class UserComponent(Component):
 
         return session_id_cookie.value
 
-    def resolve(self, request: http.Request, session: Session
+    def resolve(self, request: http.Request, session: Session,
+                token: http.QueryParam
                 # pylint: disable=arguments-differ
                 ) -> User:
-        session_id = self.get_session_id(request.headers)
-        if not session_id:
-            return None
+        if token:
+            user = session.query(User) \
+                .join(Token) \
+                .filter(Token.id == token).first()
+            return user
 
+        session_id = self.get_session_id(request.headers)
+        if session_id:
+            return self.resolve_with_session(session, session_id)
+
+        return None
+
+    def resolve_with_session(self, session, session_id):
         user, session_updated = session.query(User, UserSession.updated) \
             .join(UserSession) \
             .filter(UserSession.id == session_id).first()

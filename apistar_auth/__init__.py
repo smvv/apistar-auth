@@ -11,6 +11,7 @@ from .auth import (
 from .cookies import SESSION_COOKIE_NAME
 
 from .models import (
+    Token,
     User,
     UserRole,
     UserSession,
@@ -18,6 +19,10 @@ from .models import (
 
 from .login import (
     routes as login_routes
+)
+
+from .tokens import (
+    routes as tokens_routes,
 )
 
 from .users import (
@@ -46,6 +51,7 @@ __all__ = [
     'AuthorizationHook', 'authorized', 'Unauthorized',
     'SESSION_COOKIE_NAME',
     'disable_bcrypt_hasher', 'enable_bcrypt_hasher',
+    'Token',
     'User', 'UserInputType', 'UserType', 'UserRole', 'UserSession',
     'UserComponent',
     'routes',
@@ -53,5 +59,6 @@ __all__ = [
 
 routes = [
     Include('/login', name='login', routes=login_routes),
+    Include('/tokens', name='tokens', routes=tokens_routes),
     Include('/users', name='users', routes=users_routes),
 ]

@@ -83,3 +83,27 @@ class UserSession(database.Base):
 
     def generate_session_id(self):
         return uuid.UUID(bytes=secrets.token_bytes(16))
+
+
+class Token(database.Base):
+    __tablename__ = 'tokens'
+
+    id = Column(GUID, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'))
+
+    created = Column(DateTime(timezone=True), server_default=now())
+    updated = Column(DateTime(timezone=True), server_default=now(),
+                     onupdate=now(), index=True)
+
+    user = relationship('User')
+
+    def __init__(self, user):
+        self.id = self.generate_session_id()
+        self.user = user
+
+    def __repr__(self):
+        msg = '<Token(id=%r, user_id=%r, created=%s, updated=%s)>'
+        return msg % (self.id, self.user_id, self.created, self.updated)
+
+    def generate_session_id(self):
+        return uuid.UUID(bytes=secrets.token_bytes(16))
