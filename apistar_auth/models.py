@@ -73,9 +73,9 @@ class UserSession(database.Base):
 
     user = relationship('User', back_populates='sessions')
 
-    def __init__(self, user):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.id = self.generate_session_id()
-        self.user = user
 
     def __repr__(self):
         msg = '<UserSession(id=%r, user_id=%r, created=%s, updated=%s)>'
@@ -97,9 +97,9 @@ class Token(database.Base):
 
     user = relationship('User')
 
-    def __init__(self, user):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.id = self.generate_session_id()
-        self.user = user
 
     def __repr__(self):
         msg = '<Token(id=%r, user_id=%r, created=%s, updated=%s)>'
