@@ -19,6 +19,8 @@ pytest = "*"
 pytest-cov = "*"
 pytest-watch = "*"
 tox = "*"
+"psycopg2" = "*"
+python-dateutil = "*"
 
 [requires]
 python_version = "3.6"

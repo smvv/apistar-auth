@@ -2,6 +2,7 @@ from apistar import App, TestClient, http
 from apistar_sqlalchemy import database
 from apistar_sqlalchemy.components import SQLAlchemySessionComponent
 import pytest
+import os
 
 from sqlalchemy.orm import Session
 
@@ -59,7 +60,11 @@ def create_app(db_url: str):
     }
 
 
-sqlite_app = create_app('sqlite:///:memory:')
+apps = [create_app('sqlite:///:memory:')]
+
+if os.getenv('DATABASE_URL'):
+    psql_app = create_app(os.getenv('DATABASE_URL'))
+    apps += [psql_app]
 
 
 class TestCaseBase(object):
@@ -67,7 +72,7 @@ class TestCaseBase(object):
         # Disable bcrypt rounds to speedup testing.
         disable_bcrypt_hasher()
 
-    @pytest.fixture(scope='function', params=[sqlite_app])
+    @pytest.fixture(scope='function', params=apps)
     def app(self, request):
         return request.param
 

@@ -1,5 +1,7 @@
 from .testutil import TestCaseUnauthenticatedBase
-from datetime import datetime
+from datetime import datetime, timezone
+import dateutil.parser
+import uuid
 
 
 class TestCaseUsers(TestCaseUnauthenticatedBase):
@@ -16,7 +18,7 @@ class TestCaseUsers(TestCaseUnauthenticatedBase):
         assert resp.status_code == 200
         body = resp.json()
         assert len(body) == 2
-        assert body[1]['id'] == 2
+        assert isinstance(body[1]['id'], int)
 
         assert 'password' not in body[1]
         for key, value in user_data.items():
@@ -24,11 +26,15 @@ class TestCaseUsers(TestCaseUnauthenticatedBase):
                 continue
             assert body[1][key] == value
 
-        date_format = '%Y-%m-%dT%H:%M:%S'
-        created = datetime.strptime(body[1]['created'], date_format)
-        updated = datetime.strptime(body[1]['updated'], date_format)
+        created = dateutil.parser.parse(body[1]['created'])
+        updated = dateutil.parser.parse(body[1]['updated'])
         assert created == updated
-        assert (created - datetime.utcnow()).total_seconds() <= 1.5
+
+        # Verify that the creation and current time do not exceed 180 seconds.
+        # It is possible that there is some time drift due to querying e.g. a
+        # dockerized postgres database.
+        time_diff = created - datetime.now(timezone.utc)
+        assert time_diff.total_seconds() <= 180
 
     def test_create_failures(self, client, admin):
         resp = client.post('/users/', json={})
@@ -94,7 +100,7 @@ class TestCaseUsers(TestCaseUnauthenticatedBase):
     def test_user_can_create_user(self, client, user_data):
         resp = client.post('/users/', json=user_data)
         assert resp.status_code == 201
-        assert resp.json()['id'] == 1
+        assert isinstance(resp.json()['id'], int)
         assert resp.json()['role'] == 'user'
 
         resp = client.post('/login/', json=user_data)
@@ -103,7 +109,7 @@ class TestCaseUsers(TestCaseUnauthenticatedBase):
         user_data['username'] = 'new_user'
         resp = client.post('/users/', json=user_data)
         assert resp.status_code == 201
-        assert resp.json()['id'] == 2
+        assert isinstance(resp.json()['id'], int)
         assert resp.json()['role'] == 'user'
 
         user_data['user_data'] = 'new_admin'
@@ -116,7 +122,7 @@ class TestCaseUsers(TestCaseUnauthenticatedBase):
     def test_admin_can_create_user(self, admin, user_data):
         resp = admin.post('/users/', json=user_data)
         assert resp.status_code == 201
-        assert resp.json()['id'] == 2
+        assert isinstance(resp.json()['id'], int)
         assert resp.json()['username'] == user_data['username']
         assert resp.json()['role'] == 'user'
 
@@ -124,7 +130,7 @@ class TestCaseUsers(TestCaseUnauthenticatedBase):
         user_data['role'] = 'admin'
         resp = admin.post('/users/', json=user_data)
         assert resp.status_code == 201
-        assert resp.json()['id'] == 2
+        assert isinstance(resp.json()['id'], int)
         assert resp.json()['username'] == user_data['username']
         assert resp.json()['role'] == 'admin'
 
@@ -134,6 +140,7 @@ class TestCaseUsers(TestCaseUnauthenticatedBase):
         assert resp.json()['error'] == 'no authenticated user found'
 
         resp = client.post('/users/', json=user_data)
+        user_id = resp.json()['id']
         assert resp.status_code == 201
 
         resp = client.post('/login/', json=user_data)
@@ -144,14 +151,13 @@ class TestCaseUsers(TestCaseUnauthenticatedBase):
         body = resp.json()
         assert len(body) == 1
 
-        assert body[0]['id']
-        assert body[0]['user_id'] == 1
+        assert uuid.UUID(body[0]['id'])
+        assert body[0]['user_id'] == user_id
 
-        date_format = '%Y-%m-%dT%H:%M:%S'
-        created = datetime.strptime(body[0]['created'], date_format)
-        updated = datetime.strptime(body[0]['updated'], date_format)
+        created = dateutil.parser.parse(body[0]['created'])
+        updated = dateutil.parser.parse(body[0]['updated'])
         assert created == updated
-        assert (created - datetime.utcnow()).total_seconds() <= 1.5
+        assert (created - datetime.now(timezone.utc)).total_seconds() <= 180
 
         resp = client.post('/login/', json=user_data)
         assert resp.status_code == 200

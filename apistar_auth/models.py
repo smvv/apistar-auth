@@ -1,15 +1,35 @@
 import enum
 import uuid
 import secrets
+from datetime import datetime, timezone
 
-from sqlalchemy import Column, String, Integer, ForeignKey, DateTime
+from apistar_sqlalchemy import database
+from sqlalchemy import Column, String, Integer, ForeignKey, types
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql.functions import now
 from sqlalchemy_utils.types.choice import ChoiceType
-from apistar_sqlalchemy import database
 
 from .guid import GUID
 from .hasher import hasher
+
+
+class DateTimeUTC(types.TypeDecorator):
+    impl = types.DateTime
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return None
+        return value.astimezone(timezone.utc)
+
+    def process_literal_param(self, value, dialect):
+        raise NotImplementedError()
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return None
+        return datetime(value.year, value.month, value.day,
+                        value.hour, value.minute, value.second,
+                        value.microsecond, tzinfo=timezone.utc)
 
 
 class UserRole(enum.Enum):
@@ -40,8 +60,8 @@ class User(database.Base):
     role = Column(ChoiceType(UserRole, impl=Integer()), nullable=False)
     fullname = Column(String)
 
-    created = Column(DateTime(timezone=True), server_default=now())
-    updated = Column(DateTime(timezone=True), server_default=now(),
+    created = Column(DateTimeUTC(timezone=True), server_default=now())
+    updated = Column(DateTimeUTC(timezone=True), server_default=now(),
                      onupdate=now())
 
     sessions = relationship('UserSession',  # order_by='user_sessions.created',
@@ -67,8 +87,8 @@ class UserSession(database.Base):
     id = Column(GUID, primary_key=True)
     user_id = Column(Integer, ForeignKey('users.id'))
 
-    created = Column(DateTime(timezone=True), server_default=now())
-    updated = Column(DateTime(timezone=True), server_default=now(),
+    created = Column(DateTimeUTC(timezone=True), server_default=now())
+    updated = Column(DateTimeUTC(timezone=True), server_default=now(),
                      onupdate=now(), index=True)
 
     user = relationship('User', back_populates='sessions')
@@ -91,8 +111,8 @@ class Token(database.Base):
     id = Column(GUID, primary_key=True)
     user_id = Column(Integer, ForeignKey('users.id'))
 
-    created = Column(DateTime(timezone=True), server_default=now())
-    updated = Column(DateTime(timezone=True), server_default=now(),
+    created = Column(DateTimeUTC(timezone=True), server_default=now())
+    updated = Column(DateTimeUTC(timezone=True), server_default=now(),
                      onupdate=now(), index=True)
 
     user = relationship('User')
