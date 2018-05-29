@@ -104,7 +104,8 @@ class UserComponent(Component):
 
         session_id = self.get_session_id(request.headers)
         if session_id:
-            return self.resolve_with_session(session, session_id)
+            with session.begin_nested():
+                return self.resolve_with_session(session, session_id)
 
         return None
 
@@ -124,7 +125,6 @@ class UserComponent(Component):
         # Reject expired sessions.
         if session_updated <= now_utc - session_expires_after:
             prune_expired_sessions(session)
-            session.commit()
             return None
 
         # Update session field 'updated' when the difference between now and
@@ -134,7 +134,6 @@ class UserComponent(Component):
             session.query(UserSession) \
                 .filter(UserSession.id == session_id) \
                 .update({'updated': now()}, synchronize_session=False)
-            session.commit()
 
         return user
 
@@ -146,6 +145,8 @@ def list_users(session: Session) -> List[UserType]:
 
 def create_user(session: Session, user_data: UserInputType,
                 user: User) -> http.JSONResponse:
+    txn = session.begin_nested()
+
     new_user = User(**dict(user_data))
 
     if new_user.id is not None:
@@ -158,8 +159,9 @@ def create_user(session: Session, user_data: UserInputType,
     session.add(new_user)
 
     try:
-        session.commit()
+        txn.commit()
     except IntegrityError:
+        txn.rollback()
         raise BadRequest({'error': 'username already exists'})
 
     return http.JSONResponse(UserType(new_user), status_code=201)

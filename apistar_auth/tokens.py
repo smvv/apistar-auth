@@ -24,9 +24,9 @@ def list_tokens(session: Session, user: User) -> List[TokenType]:
 
 @authorized
 def create_token(session: Session, user: User) -> http.JSONResponse:
-    token = Token(user=user)
-    session.add(token)
-    session.commit()
+    with session.begin_nested():
+        token = Token(user=user)
+        session.add(token)
     return http.JSONResponse(TokenType(token), status_code=201)
 
 

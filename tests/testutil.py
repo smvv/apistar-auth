@@ -1,8 +1,9 @@
-from apistar import App, TestClient
+from apistar import App, TestClient, http
 from apistar_sqlalchemy import database
 from apistar_sqlalchemy.components import SQLAlchemySessionComponent
-from apistar_sqlalchemy.event_hooks import SQLAlchemyTransactionHook
 import pytest
+
+from sqlalchemy.orm import Session
 
 from apistar_auth import (
     AuthorizationHook,
@@ -15,6 +16,22 @@ from apistar_auth import (
 )
 
 from . import db_logger  # noqa
+
+
+class SQLAlchemyTransactionHook:
+    def on_request(self, session: Session):
+        self.txn = session.begin_nested()
+
+    def on_response(self, response: http.Response, session: Session,
+                    exc: Exception) -> http.Response:
+        if exc is None:
+            self.txn.commit()
+        return response
+
+    def on_error(self, response: http.Response, session: Session
+                 ) -> http.Response:
+        self.txn.rollback()
+        return response
 
 
 def create_app(db_url: str):
@@ -56,34 +73,32 @@ class TestCaseBase(object):
 
     @pytest.fixture(scope='function')
     def session(self, app, request):
+        app['database'].Session.remove()
         app['database'].Session.configure(bind=app['engine'])
-        return app['database'].Session()
+        session = app['database'].Session()
+        tnx = session.begin_nested()
+        yield session
+        tnx.rollback()
 
     @pytest.fixture(scope='function')
-    def client(self, app):
-        app['database'].Base.metadata.create_all(app['engine'])
+    def client(self, app, session):
         # Adding '.local' to the hostname is necessary because
         # `eff_request_host()` (in http/cookiejar.py) adds it as well.
         # When it is not added here, the cookie will be discarded since
         # the domain 'testserver' != 'testserver.local'.
         yield TestClient(app['app'], hostname='testserver.local')
-        app['database'].Base.metadata.drop_all(app['engine'])
 
     @pytest.fixture(scope='function')
     def admin(self, app, session):
-        app['database'].Base.metadata.create_all(app['engine'])
         admin = User(**self.admin_data())
         session.add(admin)
 
         admin_session = UserSession(user=admin)
         session.add(admin_session)
 
-        session.commit()
-
         client = TestClient(app['app'], hostname='testserver.local')
         client.cookies[SESSION_COOKIE_NAME] = str(admin_session.id)
         yield client
-        app['database'].Base.metadata.drop_all(app['engine'])
 
     @pytest.fixture(scope='function')
     def admin_data(self):

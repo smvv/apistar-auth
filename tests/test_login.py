@@ -60,7 +60,6 @@ class TestCaseLogin(TestCaseUnauthenticatedBase):
         # Set the created and updated field to an expired date.
         sessions[0].created = datetime.utcnow() - session_expires_after
         sessions[0].updated = datetime.utcnow() - session_expires_after
-        session.commit()
 
         if use_session_endpoint:
             resp = client.delete('/users/sessions/expired/')
@@ -94,7 +93,6 @@ class TestCaseLogin(TestCaseUnauthenticatedBase):
         # Set the created and updated field to an expired date.
         sessions[0].created = datetime.utcnow() - session_expires_after
         sessions[0].updated = datetime.utcnow() - session_expires_after
-        session.commit()
 
         resp = client.get('/users/sessions/')
         assert resp.status_code == 401
@@ -119,7 +117,6 @@ class TestCaseLogin(TestCaseUnauthenticatedBase):
         created = datetime.utcnow() - session_update_delay
         sessions[0].created = created
         sessions[0].updated = created
-        session.commit()
 
         resp = client.get('/users/sessions/')
         assert resp.status_code == 200
