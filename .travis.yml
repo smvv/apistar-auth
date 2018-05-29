@@ -2,6 +2,13 @@ language: python
 sudo: false
 python:
   - "3.6"
+addons:
+  postgresql: "10.4"
+services:
+  - postgresql
+env:
+  global:
+    - PIPENV_DOTENV_LOCATION: "$TRAVIS_BUILD_DIR/.env.test"
 install:
   - pip install tox
   - pip install tox-travis

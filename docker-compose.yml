@@ -1,0 +1,10 @@
+version: '3'
+services:
+  db:
+    image: postgres:10.4
+    # Disable fsync during development and testing. Do not use in production!
+    command: docker-entrypoint.sh -c fsync=off -c full_page_writes=off -c shared_buffers=256MB
+    volumes:
+      - ./tmp/db:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"

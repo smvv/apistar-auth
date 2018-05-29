@@ -3,6 +3,9 @@ all:
 test:
 	pipenv run pytest -q --tb=short
 
+db:
+	docker-compose up -d
+
 lint:
 	pipenv run prospector
 
