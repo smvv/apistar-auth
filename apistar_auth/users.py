@@ -5,7 +5,7 @@ import uuid
 
 from apistar import Route, validators, types, http, Component
 from apistar.exceptions import BadRequest
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, class_mapper, ColumnProperty
 from sqlalchemy.sql.functions import now
 from sqlalchemy.exc import IntegrityError
 
@@ -13,6 +13,14 @@ from .auth import authorized
 from .cookies import SESSION_COOKIE_NAME
 from .models import Token, User, UserRole, UserSession, can_user_create_user
 from .validators import UUID
+
+
+def attribute_names(cls):
+    return [
+        prop.key
+        for prop in class_mapper(cls).iterate_properties
+        if isinstance(prop, ColumnProperty)
+    ]
 
 
 class UserBaseType(types.Type):
@@ -31,7 +39,10 @@ class UserBaseType(types.Type):
             if isinstance(arg, User):
                 # Convert enum name to string.
                 role = arg.role.name
-                arg = arg.__dict__
+                arg = {
+                    key: getattr(arg, key)
+                    for key in attribute_names(arg.__class__)
+                }
                 arg['role'] = role
             patched.append(arg)
         super().__init__(*patched, **kwargs)
