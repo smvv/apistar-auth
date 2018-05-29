@@ -16,23 +16,33 @@ from apistar_auth import (
 
 from . import db_logger  # noqa
 
-components = [
-    SQLAlchemySessionComponent(url='sqlite:///:memory:'),
-    UserComponent(),
-]
 
-event_hooks = [
-    AuthorizationHook(),
-    SQLAlchemyTransactionHook(),
-]
+def create_app(db_url: str):
+    components = [
+        SQLAlchemySessionComponent(url=db_url),
+        UserComponent(),
+    ]
+
+    event_hooks = [
+        AuthorizationHook(),
+        SQLAlchemyTransactionHook(),
+    ]
+
+    # Create all SQL tables, if they do not exist.
+    engine = components[0].engine
+    database.Base.metadata.create_all(engine)
+
+    app = App(routes=routes, components=components, event_hooks=event_hooks)
+    app.debug = True
+
+    return {
+        "app": app,
+        "engine": engine,
+        "database": database,
+    }
 
 
-# Create all SQL tables, if they do not exist.
-engine = components[0].engine
-database.Base.metadata.create_all(engine)
-
-app = App(routes=routes, components=components, event_hooks=event_hooks)
-app.debug = True
+sqlite_app = create_app('sqlite:///:memory:')
 
 
 class TestCaseBase(object):
@@ -40,25 +50,28 @@ class TestCaseBase(object):
         # Disable bcrypt rounds to speedup testing.
         disable_bcrypt_hasher()
 
-    @pytest.fixture(scope='function')
-    def session(self):
-        database.Session.configure(bind=engine)
-        return database.Session()
+    @pytest.fixture(scope='function', params=[sqlite_app])
+    def app(self, request):
+        return request.param
 
-    @pytest.fixture(scope='function', params=[app])
-    def client(self, request):
-        database.Base.metadata.create_all(engine)
+    @pytest.fixture(scope='function')
+    def session(self, app, request):
+        app['database'].Session.configure(bind=app['engine'])
+        return app['database'].Session()
+
+    @pytest.fixture(scope='function')
+    def client(self, app):
+        app['database'].Base.metadata.create_all(app['engine'])
         # Adding '.local' to the hostname is necessary because
         # `eff_request_host()` (in http/cookiejar.py) adds it as well.
         # When it is not added here, the cookie will be discarded since
         # the domain 'testserver' != 'testserver.local'.
-        yield TestClient(request.param, hostname='testserver.local')
-        database.Base.metadata.drop_all(engine)
+        yield TestClient(app['app'], hostname='testserver.local')
+        app['database'].Base.metadata.drop_all(app['engine'])
 
-    @pytest.fixture(scope='function', params=[app])
-    def admin(self, session, request):
-        database.Base.metadata.create_all(engine)
-
+    @pytest.fixture(scope='function')
+    def admin(self, app, session):
+        app['database'].Base.metadata.create_all(app['engine'])
         admin = User(**self.admin_data())
         session.add(admin)
 
@@ -67,12 +80,10 @@ class TestCaseBase(object):
 
         session.commit()
 
-        client = TestClient(request.param, hostname='testserver.local')
+        client = TestClient(app['app'], hostname='testserver.local')
         client.cookies[SESSION_COOKIE_NAME] = str(admin_session.id)
-
         yield client
-
-        database.Base.metadata.drop_all(engine)
+        app['database'].Base.metadata.drop_all(app['engine'])
 
     @pytest.fixture(scope='function')
     def admin_data(self):
