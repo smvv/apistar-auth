@@ -1,6 +1,6 @@
 from http.cookies import SimpleCookie
 from typing import List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import uuid
 
 from apistar import Route, validators, types, http, Component
@@ -102,8 +102,16 @@ class UserComponent(Component):
             .join(UserSession) \
             .filter(UserSession.id == session_id).first()
 
+        # SQLite does not support datetime timezones. Therefore, it will drop
+        # the timezone part. When that's the case, we assume that the timezone
+        # was utc since we're comparing with the current utc time.
+        if session_updated.tzinfo is None:
+            session_updated = session_updated.replace(tzinfo=timezone.utc)
+
+        now_utc = datetime.now(timezone.utc)
+
         # Reject expired sessions.
-        if session_updated <= (datetime.utcnow() - session_expires_after):
+        if session_updated <= now_utc - session_expires_after:
             prune_expired_sessions(session)
             session.commit()
             return None
@@ -111,7 +119,7 @@ class UserComponent(Component):
         # Update session field 'updated' when the difference between now and
         # the last update is more than 'session_update_delay'. This avoids
         # updating the field too often.
-        if (datetime.utcnow() - session_updated) >= session_update_delay:
+        if now_utc - session_updated >= session_update_delay:
             session.query(UserSession) \
                 .filter(UserSession.id == session_id) \
                 .update({'updated': now()}, synchronize_session=False)
@@ -156,7 +164,7 @@ def list_user_session(session: Session, user: User) -> List[UserSessionType]:
 
 @authorized
 def prune_expired_sessions(session: Session):
-    expiration_date = datetime.utcnow() - session_expires_after
+    expiration_date = datetime.now(timezone.utc) - session_expires_after
     session.query(UserSession) \
         .filter(UserSession.updated <= expiration_date) \
         .delete(synchronize_session=False)
