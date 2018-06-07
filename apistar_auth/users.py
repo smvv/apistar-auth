@@ -184,8 +184,8 @@ def prune_expired_sessions(session: Session):
 
 
 routes = [
-    Route('/', 'GET', list_users),
-    Route('/', 'POST', create_user),
-    Route('/sessions/', 'GET', list_user_session),
-    Route('/sessions/expired/', 'DELETE', prune_expired_sessions),
+    Route('/users', 'GET', list_users),
+    Route('/users', 'POST', create_user),
+    Route('/users/sessions', 'GET', list_user_session),
+    Route('/users/sessions/expired', 'DELETE', prune_expired_sessions),
 ]

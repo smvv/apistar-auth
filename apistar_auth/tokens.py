@@ -31,6 +31,6 @@ def create_token(session: Session, user: User) -> http.JSONResponse:
 
 
 routes = [
-    Route('/', 'GET', list_tokens),
-    Route('/', 'POST', create_token),
+    Route('/tokens', 'GET', list_tokens),
+    Route('/tokens', 'POST', create_token),
 ]

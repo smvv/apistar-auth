@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from apistar import Include
-
 from .auth import (
     AuthorizationHook,
     authorized,
@@ -57,8 +55,4 @@ __all__ = [
     'routes',
 ]
 
-routes = [
-    Include('/login', name='login', routes=login_routes),
-    Include('/tokens', name='tokens', routes=tokens_routes),
-    Include('/users', name='users', routes=users_routes),
-]
+routes = login_routes + tokens_routes + users_routes

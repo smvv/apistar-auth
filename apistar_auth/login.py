@@ -33,5 +33,5 @@ def login(session: Session, request: http.Request,
 
 
 routes = [
-    Route('/', 'POST', login),
+    Route('/login', 'POST', login),
 ]
