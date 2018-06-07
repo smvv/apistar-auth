@@ -17,7 +17,8 @@ def get_session_cookie(url: str, session_id: str) -> SimpleCookie:
     if parsed.scheme == 'https':
         cookie[SESSION_COOKIE_NAME]['secure'] = True
 
-    cookie[SESSION_COOKIE_NAME]['domain'] = '.' + parsed.netloc
+    if parsed.hostname != 'localhost':
+        cookie[SESSION_COOKIE_NAME]['domain'] = '.' + parsed.netloc
 
     expires = datetime.utcnow() + timedelta(days=3 * 30)
     date_format = '%a, %d %b %Y %H:%M:%S GMT'
